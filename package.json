@@ -1,0 +1,15 @@
+{
+  "name": "luisdevgaming-netlify",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node --check netlify/functions/catalog.mjs && node --check src/app.mjs && node --check src/auth.mjs && node --check src/page.mjs && node --check public/assets/site.js"
+  },
+  "dependencies": {
+    "@netlify/blobs": "11.1.9"
+  }
+}
