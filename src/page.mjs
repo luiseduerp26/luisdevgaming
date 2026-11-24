@@ -19,7 +19,11 @@ export function escape(value) {
   })[char]);
 }
 
-const brand = '<a href="/" class="brand" aria-label="LuisDevGaming, inicio"><span class="brand-icon">' + icon('game') + '</span><span>LuisDev<b>Gaming</b></span></a>';
+const logoPath = '/assets/luisdevgaming-logo.webp';
+const discordInvite = 'https://discord.gg/YZQjqdtsK';
+const brand = `<a href="/" class="brand" aria-label="LuisDevGaming, inicio">
+  <img class="brand-icon" src="${logoPath}" width="48" height="48" alt="">
+  <span>LuisDev<b>Gaming</b></span></a>`;
 
 function layout(title, body, active) {
   return `<!doctype html><html lang="es"><head>
@@ -27,7 +31,7 @@ function layout(title, body, active) {
 <title>${escape(title)}</title>
 <meta name="description" content="LuisDevGaming. Catálogo independiente de ports no oficiales para PC.">
 <meta name="theme-color" content="#090f1d">
-<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="${logoPath}" type="image/webp">
 <link rel="stylesheet" href="/assets/site.css"><script defer src="/assets/site.js"></script>
 </head><body>
 <header class="top"><div class="wrap top-inner">${brand}
@@ -68,7 +72,10 @@ export function publicPage(projects, loaded = true) {
 <div class="kicker">${icon('monitor')} Catálogo independiente</div>
 <h1 id="titulo">Ports no oficiales.<span>Para PC.</span></h1>
 <p>Explora mis proyectos terminados y descarga cada port desde su servidor de alojamiento.</p>
-<a class="button primary" href="#catalogo">${icon('grid')} Explorar catálogo</a>
+<div class="actions">
+  <a class="button primary" href="#catalogo">${icon('grid')} Explorar catálogo</a>
+  <a class="button discord-button" href="${discordInvite}" target="_blank" rel="noopener noreferrer">${icon('link')} Únete a Discord</a>
+</div>
 </div></section>
 <section class="catalog" id="catalogo" aria-labelledby="catalog-title">
 <div class="sectionbar"><div><h2 id="catalog-title">Catálogo de proyectos</h2>
