@@ -1,4 +1,4 @@
-import { currentRelease, technicalFields } from './project-details.mjs';
+import { currentRelease, technicalFields, isReleased, projectStatus, projectStatuses } from './project-details.mjs';
 
 const paths = {
   game: '<path d="M6.2 6h11.6a4 4 0 0 1 3.9 3.4l1 5.5a3.2 3.2 0 0 1-5.4 2.8L15.4 16H8.6l-1.9 1.7a3.2 3.2 0 0 1-5.4-2.8l1-5.5A4 4 0 0 1 6.2 6Z"/><path d="M8 9v5m-2.5-2.5h5m5.7-1h.01m2.9 2h.01"/>',
@@ -88,21 +88,29 @@ function technicalDetails(project) {
   <dl class="technical-list">${fields.map(({ key, label }) => `<div><dt>${label}</dt><dd>${escape(project.technical[key])}</dd></div>`).join('')}</dl></section>`;
 }
 
+function statusBadge(project) {
+  const status = projectStatus(project);
+  return `<span class="project-status project-status--${status}">${projectStatuses[status]}</span>`;
+}
+
 function card(project, admin = false) {
   const id = escape(project.id);
-  const download = downloadButton(project.download_url, 'Descargar para PC');
+  const released = isReleased(project);
+  const download = released ? downloadButton(project.download_url, 'Descargar para PC') : '';
   const actions = admin
     ? `<div class="actions"><a class="button secondary" href="/admin?editar=${id}#editor">Editar</a><button class="button danger delete" data-id="${id}" type="button">Eliminar</button></div>`
     : `<div class="actions">${download}<a class="button secondary" href="/proyectos/${id}">Ver ficha</a></div>`;
   return `<article class="card" data-name="${escape(project.title)}">
   ${cover(project)}
   <div class="card-body">
-  <span class="version">PC${project.version ? ' · ' + escape(project.version) : ''}</span>
+  ${released ? `<span class="version">PC${project.version ? ' · ' + escape(project.version) : ''}</span>` : statusBadge(project)}
   <h3>${escape(project.title)}</h3>${project.description ? `<p>${escape(project.description)}</p>` : ''}${actions}
   </div></article>`;
 }
 
 export function publicPage(projects, loaded = true) {
+  const published = projects.filter(isReleased);
+  const upcoming = projects.filter((project) => !isReleased(project));
   return layout('LuisDevGaming · Ports no oficiales para PC', `<div class="wrap">
 <section class="hero" aria-labelledby="titulo"><div class="hero-art"></div><div class="hero-shade"></div>
 <div class="hero-content">
@@ -111,27 +119,35 @@ export function publicPage(projects, loaded = true) {
 <p>Explora mis proyectos terminados y descarga cada port desde su servidor de alojamiento.</p>
 <div class="actions">
   <a class="button primary" href="#catalogo">${icon('grid')} Explorar catálogo</a>
+  ${upcoming.length ? `<a class="button secondary" href="#proximos-ports">Próximos ports</a>` : ''}
   <a class="button discord-button" href="${discordInvite}" target="_blank" rel="noopener noreferrer">${icon('link')} Únete a Discord</a>
 </div>
 </div></section>
 <section class="catalog" id="catalogo" aria-labelledby="catalog-title">
 <div class="sectionbar"><div><h2 id="catalog-title">Catálogo de proyectos</h2>
-<p>${projects.length === 1 ? '1 port publicado' : projects.length > 1 ? projects.length + ' ports publicados' : 'Ports para PC'}</p></div>
-${projects.length ? `<div class="searchbox">${icon('search')}<label class="visually-hidden" for="search">Buscar por nombre</label><input id="search" class="input" type="search" placeholder="Buscar un port…" autocomplete="off"></div>` : ''}
+<p>${published.length === 1 ? '1 port publicado' : published.length > 1 ? published.length + ' ports publicados' : 'Ports para PC'}</p></div>
+${published.length ? `<div class="searchbox">${icon('search')}<label class="visually-hidden" for="search">Buscar por nombre</label><input id="search" class="input" type="search" placeholder="Buscar un port…" autocomplete="off"></div>` : ''}
 </div>
-${projects.length ? `<div class="grid" id="projects">${projects.map((project) => card(project)).join('')}</div>
+${published.length ? `<div class="grid" id="projects">${published.map((project) => card(project)).join('')}</div>
 ${empty('Sin coincidencias', 'Prueba con otro nombre.', 'no-results')}`
 : loaded ? empty('Aún no hay ports publicados', 'Aquí aparecerán las fichas y descargas de los proyectos terminados.')
 : empty('Catálogo temporalmente inaccesible', 'Recarga la página en unos minutos.')}
-</section></div>`, 'catalog');
+</section>
+${upcoming.length ? `<section class="catalog" id="proximos-ports" aria-labelledby="upcoming-title">
+<div class="sectionbar"><div><h2 id="upcoming-title">Próximos ports</h2>
+<p>Proyectos en desarrollo para PC.</p></div></div>
+<div class="grid">${upcoming.map((project) => card(project)).join('')}</div>
+</section>` : ''}
+</div>`, 'catalog');
 }
 
 export function detailPage(project) {
   const release = currentRelease(project);
   const meta = releaseMeta(release);
+  const released = isReleased(project);
   return layout(project.title + ' · LuisDevGaming', `<section class="wrap admin project-detail">
   <div class="sectionbar"><div><h1>${escape(project.title)}</h1><p>Port no oficial para PC</p></div>
-  <a class="button secondary" href="/#catalogo">${icon('grid')} Volver al catálogo</a></div>
+  <a class="button secondary" href="/#${released ? 'catalogo' : 'proximos-ports'}">${icon('grid')} ${released ? 'Volver al catálogo' : 'Ver próximos ports'}</a></div>
   <div class="project-detail-grid">
     <div class="project-detail-column">
       <div class="card">${cover(project, false)}
@@ -139,13 +155,15 @@ export function detailPage(project) {
       ${technicalDetails(project)}
     </div>
     <div class="project-detail-column">
-      <section class="pane latest-release" aria-labelledby="latest-release-title">
+      ${released ? `<section class="pane latest-release" aria-labelledby="latest-release-title">
         <h2 id="latest-release-title">Última versión${release.version ? ' · ' + escape(release.version) : ''}</h2>
         ${meta ? `<p class="quiet">${meta}</p>` : ''}
         ${release.release_notes ? `<p class="release-notes">${escape(release.release_notes)}</p>` : ''}
         ${downloadButton(release.download_url, release.version ? 'Descargar última versión' : 'Descargar para PC')}
       </section>
-      ${releaseHistory(project.release_history ?? [])}
+      ${releaseHistory(project.release_history ?? [])}` :
+      `<section class="pane" aria-labelledby="upcoming-status-title"><h2 id="upcoming-status-title">Estado del proyecto</h2>
+      ${statusBadge(project)}<p class="quiet upcoming-note">El port todavía está en desarrollo.</p></section>`}
     </div>
   </div></section>`);
 }
@@ -173,7 +191,7 @@ function formField({ name, label, value, max, placeholder = '', type = 'text', m
 function releaseFields(release = {}, prefix = '') {
   return [
     { key: 'version', label: 'Versión', max: 40, placeholder: 'Ej. 1.2.0' },
-    { key: 'download_url', label: 'URL de descarga', max: 2048, type: 'url', placeholder: 'https://…', required: !prefix },
+    { key: 'download_url', label: 'URL de descarga', max: 2048, type: 'url', placeholder: 'https://…' },
     { key: 'release_date', label: 'Fecha de publicación', type: 'date' },
     { key: 'download_size', label: 'Tamaño de descarga', max: 40, placeholder: 'Ej. 850 MB' },
     { key: 'release_notes', label: 'Novedades de la versión', max: 1800, multiline: true },
@@ -190,10 +208,15 @@ export function adminPage(projects, project) {
   ${project ? `<input type="hidden" name="revision" value="${escape(project.revision)}">` : ''}
   <div class="field"><label for="title">Nombre del juego</label><input id="title" name="title" class="input" maxlength="120" required value="${escape(project?.title)}"></div>
   <div class="field"><label for="description">Descripción</label><textarea id="description" name="description" maxlength="1200" placeholder="Cuenta de qué trata el port.">${escape(project?.description)}</textarea></div>
+  <div class="field"><label for="status">Estado del proyecto</label>
+    <select class="input" id="status" name="status">${Object.entries(projectStatuses).map(([value, label]) =>
+      `<option value="${value}"${value === projectStatus(project) ? ' selected' : ''}>${label}</option>`).join('')}</select>
+    <small>La URL de descarga solo es obligatoria cuando el proyecto está publicado.</small>
+  </div>
   <fieldset class="options"><legend>${project ? 'Versión actual' : 'Primera versión'}</legend>
     ${releaseFields(project)}
   </fieldset>
-  ${project ? `<details class="editor-details"><summary>Publicar una nueva versión</summary>
+  ${project?.download_url ? `<details class="editor-details"><summary>Publicar una nueva versión</summary>
     <div class="form"><p class="quiet">Completa versión, fecha y URL, y pulsa Guardar cambios. La descarga actual pasará al historial.</p>
     ${releaseFields({}, 'new_')}</div></details>` : ''}
   <details class="editor-details"><summary>Ficha técnica (opcional)</summary>
@@ -210,7 +233,7 @@ export function adminPage(projects, project) {
   <p id="form-message" class="message" role="status" hidden></p>
   <div class="actions"><button class="button primary" id="submit-project" type="submit">${icon('add')} ${project ? 'Guardar cambios' : 'Publicar proyecto'}</button>
   ${project ? '<a class="button secondary" href="/admin#editor">Cancelar</a>' : ''}</div></form></section>
-  <section class="pane"><h2>Proyectos publicados (${projects.length})</h2>
+  <section class="pane"><h2>Proyectos (${projects.length})</h2>
   <p class="message" id="catalog-message" role="status" hidden></p>
   ${projects.length ? `<div class="grid">${projects.map((entry) => card(entry, true)).join('')}</div>` : empty('Todavía no hay proyectos', 'Completa el formulario para publicar el primero.')}
   </section></div></section>`, 'admin');

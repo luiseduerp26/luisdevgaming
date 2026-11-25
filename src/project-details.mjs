@@ -14,3 +14,17 @@ export function currentRelease(project = {}) {
     release_notes: project.release_notes ?? '',
   };
 }
+
+export const projectStatuses = {
+  released: 'Publicado',
+  coming_soon: 'Próximamente',
+  testing: 'En pruebas',
+};
+
+export function projectStatus(project) {
+  return Object.hasOwn(projectStatuses, project?.status) ? project.status : 'released';
+}
+
+export function isReleased(project) {
+  return projectStatus(project) === 'released';
+}

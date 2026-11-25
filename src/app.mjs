@@ -1,7 +1,7 @@
 import { publicPage, adminPage, detailPage, messagePage } from './page.mjs';
 import { authorized, checkPassword, clearCookie, configured, sessionCookie } from './auth.mjs';
 import { getCatalog, putCatalog, removeImage } from './storage.mjs';
-import { technicalFields, currentRelease } from './project-details.mjs';
+import { technicalFields, currentRelease, projectStatus, projectStatuses } from './project-details.mjs';
 
 const limit = 4 * 1024 * 1024;
 const idFormat = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
@@ -156,9 +156,9 @@ function readRelease(form, prefix, fallback = {}) {
   return { version, download_url: download, release_date: date, download_size: size, release_notes: notes };
 }
 
-function releasesFromForm(form, previous) {
+function releasesFromForm(form, previous, status) {
   const existing = readRelease(form, '', previous ? currentRelease(previous) : {});
-  existing.download_url = webUrl(existing.download_url, 'La URL de descarga');
+  if (existing.download_url) existing.download_url = webUrl(existing.download_url, 'La URL de descarga');
   const history = previous?.release_history ?? [];
   const next = readRelease(form, 'new_');
   const publishing = Object.values(next).some(Boolean);
@@ -166,7 +166,15 @@ function releasesFromForm(form, previous) {
   if (existing.version && history.some((entry) => entry.version?.toLowerCase() === existing.version.toLowerCase())) {
     throw new InputError('Esa versión ya existe en el historial.');
   }
-  if (!publishing) return { ...existing, release_history: history };
+  if (!publishing) {
+    if (status === 'released' && !existing.download_url) {
+      throw new InputError('Agrega la URL HTTPS de descarga para publicar el port.');
+    }
+    return { ...existing, release_history: history };
+  }
+  if (status !== 'released') {
+    throw new InputError('Selecciona Publicado para agregar una nueva versión al historial.');
+  }
   if (!previous || !next.version || !next.download_url || !next.release_date) {
     throw new InputError('Para publicar una nueva versión, indica su nombre, fecha y URL de descarga.');
   }
@@ -174,7 +182,7 @@ function releasesFromForm(form, previous) {
   if ([existing, ...history].some((entry) => entry.version?.toLowerCase() === next.version.toLowerCase())) {
     throw new InputError('Esa versión ya existe. Usa otro nombre para la nueva publicación.');
   }
-  return { ...next, release_history: [existing, ...history] };
+  return { ...next, release_history: existing.download_url ? [existing, ...history] : history };
 }
 
 async function saveProject(request, store, snapshot, id) {
@@ -187,7 +195,11 @@ async function saveProject(request, store, snapshot, id) {
   }
   const title = stringField(form, 'title', 120, 'El nombre', true);
   const description = stringField(form, 'description', 1200, 'La descripción');
-  const release = releasesFromForm(form, previous);
+  const status = form.has('status') ? form.get('status') : projectStatus(previous);
+  if (typeof status !== 'string' || !Object.hasOwn(projectStatuses, status)) {
+    throw new InputError('Selecciona un estado válido para el proyecto.');
+  }
+  const release = releasesFromForm(form, previous, status);
   const technical = Object.fromEntries(technicalFields.map(({ key, label, max }) => [
     key, form.has(key) ? stringField(form, key, max, label) : previous?.technical?.[key] ?? '',
   ]));
@@ -213,6 +225,7 @@ async function saveProject(request, store, snapshot, id) {
     id: projectId,
     title,
     description,
+    status,
     ...release,
     technical,
     revision: crypto.randomUUID(),

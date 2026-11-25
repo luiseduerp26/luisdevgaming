@@ -31,3 +31,8 @@
 .editor-details summary{cursor:pointer;font-weight:700;color:var(--ink)}
 .editor-details .form{margin-top:14px}
 @media(max-width:760px){.project-detail-grid{grid-template-columns:minmax(0,1fr)}}
+
+.project-status{display:inline-flex;align-self:flex-start;border:1px solid #526ad3;border-radius:999px;background:#222950;color:#ccd6ff;padding:4px 10px;font-size:.8rem;font-weight:750;line-height:1.4}
+.project-status--testing{border-color:#8a6550;background:#392b25;color:#ffdcaf}
+.upcoming-note{margin-top:10px}
+select.input{font:inherit}
