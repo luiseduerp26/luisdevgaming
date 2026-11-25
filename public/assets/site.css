@@ -10,7 +10,24 @@
 @media(max-width:960px){.wrap{width:calc(100% - 56px)}.admin-layout{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{min-height:425px}.hero-art{background-position:55% center}}
 @media(max-width:590px){.wrap{width:calc(100% - 32px)}.top-inner{height:64px;gap:8px}.brand{font-size:1rem;gap:7px}.brand-icon{width:34px;height:34px;border-radius:8px}.navigation{gap:12px}.navigation>a{font-size:.77rem;gap:4px}.navigation .icon{width:13px;height:13px}.hero{margin-top:20px;min-height:0;align-items:end;border-radius:18px}.hero-content{padding:30px 22px;min-height:495px;display:flex;flex-direction:column;justify-content:end;align-items:start}.hero h1{font-size:clamp(2.85rem,12vw,4.4rem);margin:15px 0}.hero p{font-size:1rem;margin-bottom:21px}.hero-art{background-size:auto 72%;background-position:77% top}.hero-shade{background:linear-gradient(0deg,#0b1429 23%,#0b1429eb 40%,transparent 73%)}.catalog{margin-top:33px}.sectionbar{align-items:start;flex-direction:column;gap:16px}.searchbox{width:100%}.grid,.admin .grid{grid-template-columns:1fr}.footer{margin-top:34px}.footer-inner{min-height:89px;justify-content:center;align-items:start;flex-direction:column}.admin .sectionbar{align-items:start}.pane{padding:18px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;scroll-behavior:auto!important;transition:none!important}}
-.detail-card{max-width:780px}
+
 
 .button.discord-button{background:#202052;border-color:#7978ed;color:#f3f0ff}
 .button.discord-button:hover{background:#363581;border-color:#a6a5ff}
+
+.project-detail-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:24px}
+.project-detail-column{display:grid;gap:20px;align-content:start;min-width:0}
+.project-detail .project-description{margin:0}
+.latest-release h2{margin-bottom:8px;overflow-wrap:anywhere}
+.latest-release .button{margin-top:14px}
+.release-notes{color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;margin:10px 0 0}
+.release-list,.technical-list{padding:0;margin:0;display:grid;gap:16px}
+.release-list{list-style:none}
+.release-entry+.release-entry,.technical-list div+div{border-top:1px solid var(--line);padding-top:16px}
+.release-entry-heading{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.release-entry h3,.technical-list dt{font-size:1rem;font-weight:750;margin:0;overflow-wrap:anywhere}
+.technical-list dd{margin:4px 0 0;white-space:pre-wrap;color:var(--muted);overflow-wrap:anywhere}
+.editor-details{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg)}
+.editor-details summary{cursor:pointer;font-weight:700;color:var(--ink)}
+.editor-details .form{margin-top:14px}
+@media(max-width:760px){.project-detail-grid{grid-template-columns:minmax(0,1fr)}}

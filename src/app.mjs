@@ -1,6 +1,7 @@
 import { publicPage, adminPage, detailPage, messagePage } from './page.mjs';
 import { authorized, checkPassword, clearCookie, configured, sessionCookie } from './auth.mjs';
 import { getCatalog, putCatalog, removeImage } from './storage.mjs';
+import { technicalFields, currentRelease } from './project-details.mjs';
 
 const limit = 4 * 1024 * 1024;
 const idFormat = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
@@ -96,7 +97,7 @@ async function readForm(request) {
   if (!type?.startsWith('multipart/form-data;') || !request.body) {
     throw new InputError('Envía el formulario del panel.');
   }
-  const maxBody = limit + 32 * 1024;
+  const maxBody = limit + 64 * 1024;
   const reader = request.body.getReader();
   const chunks = [];
   let size = 0;
@@ -135,15 +136,61 @@ async function readImage(file) {
   };
 }
 
+function readRelease(form, prefix, fallback = {}) {
+  function field(key, max, label) {
+    return form.has(prefix + key) ? stringField(form, prefix + key, max, label) : fallback[key] ?? '';
+  }
+
+  const version = field('version', 40, 'La versión');
+  const download = field('download_url', 2048, 'La URL de descarga');
+  const date = field('release_date', 10, 'La fecha de publicación');
+  const size = field('download_size', 40, 'El tamaño de descarga');
+  const notes = field('release_notes', 1800, 'Las notas de versión');
+  if (date) {
+    const timestamp = Date.parse(date + 'T00:00:00Z');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date.startsWith('0000') ||
+        !Number.isFinite(timestamp) || new Date(timestamp).toISOString().slice(0, 10) !== date) {
+      throw new InputError('Ingresa una fecha de publicación válida.');
+    }
+  }
+  return { version, download_url: download, release_date: date, download_size: size, release_notes: notes };
+}
+
+function releasesFromForm(form, previous) {
+  const existing = readRelease(form, '', previous ? currentRelease(previous) : {});
+  existing.download_url = webUrl(existing.download_url, 'La URL de descarga');
+  const history = previous?.release_history ?? [];
+  const next = readRelease(form, 'new_');
+  const publishing = Object.values(next).some(Boolean);
+
+  if (existing.version && history.some((entry) => entry.version?.toLowerCase() === existing.version.toLowerCase())) {
+    throw new InputError('Esa versión ya existe en el historial.');
+  }
+  if (!publishing) return { ...existing, release_history: history };
+  if (!previous || !next.version || !next.download_url || !next.release_date) {
+    throw new InputError('Para publicar una nueva versión, indica su nombre, fecha y URL de descarga.');
+  }
+  next.download_url = webUrl(next.download_url, 'La URL de la nueva versión');
+  if ([existing, ...history].some((entry) => entry.version?.toLowerCase() === next.version.toLowerCase())) {
+    throw new InputError('Esa versión ya existe. Usa otro nombre para la nueva publicación.');
+  }
+  return { ...next, release_history: [existing, ...history] };
+}
+
 async function saveProject(request, store, snapshot, id) {
   const { projects } = snapshot;
   const previous = id ? projects.find((project) => project.id === id) : null;
   if (id && !previous) throw new InputError('El proyecto ya no existe.', 404);
   const form = await readForm(request);
+  if (previous && form.has('revision') && form.get('revision') !== (previous.revision ?? '')) {
+    throw new InputError('El proyecto cambió desde que abriste el editor. Recarga la página antes de guardar.', 409);
+  }
   const title = stringField(form, 'title', 120, 'El nombre', true);
   const description = stringField(form, 'description', 1200, 'La descripción');
-  const version = stringField(form, 'version', 40, 'La versión');
-  const download = webUrl(stringField(form, 'download_url', 2048, 'La URL de descarga', true), 'La URL de descarga');
+  const release = releasesFromForm(form, previous);
+  const technical = Object.fromEntries(technicalFields.map(({ key, label, max }) => [
+    key, form.has(key) ? stringField(form, key, max, label) : previous?.technical?.[key] ?? '',
+  ]));
 
   let imageUrl = '';
   let imageKey = '';
@@ -166,10 +213,11 @@ async function saveProject(request, store, snapshot, id) {
     id: projectId,
     title,
     description,
-    version,
+    ...release,
+    technical,
+    revision: crypto.randomUUID(),
     image_url: imageUrl,
     image_key: imageKey,
-    download_url: download,
     created_at: previous?.created_at ?? Date.now(),
   };
   const next = previous ? projects.map((project) => project.id === id ? updated : project) : [updated, ...projects];
