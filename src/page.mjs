@@ -195,7 +195,7 @@ function releaseFields(release = {}, prefix = '') {
     { key: 'release_date', label: 'Fecha de publicación', type: 'date' },
     { key: 'download_size', label: 'Tamaño de descarga', max: 40, placeholder: 'Ej. 850 MB' },
     { key: 'release_notes', label: 'Novedades de la versión', max: 1800, multiline: true },
-  ].map(({ key, ...field }) => formField({ ...field, name: prefix + key, value: release[key] })).join('');
+  ].map(({ key, ...field }) => formField({ ...field, name: prefix + key, value: release?.[key] })).join('');
 }
 
 export function adminPage(projects, project) {
