@@ -146,7 +146,8 @@ export function detailPage(project) {
   const meta = releaseMeta(release);
   const released = isReleased(project);
   return layout(project.title + ' · LuisDevGaming', `<section class="wrap admin project-detail">
-  <div class="sectionbar"><div><h1>${escape(project.title)}</h1><p>Port no oficial para PC</p></div>
+  <div class="sectionbar"><div><h1>${escape(project.title)}</h1><p>Port no oficial para PC</p>
+  ${project.author ? `<p>Desarrollado por <strong>${escape(project.author)}</strong></p>` : ''}</div>
   <a class="button secondary" href="/#${released ? 'catalogo' : 'proximos-ports'}">${icon('grid')} ${released ? 'Volver al catálogo' : 'Ver próximos ports'}</a></div>
   <div class="project-detail-grid">
     <div class="project-detail-column">
@@ -207,6 +208,7 @@ export function adminPage(projects, project) {
   <form class="form" id="project-form" data-id="${escape(project?.id)}">
   ${project ? `<input type="hidden" name="revision" value="${escape(project.revision)}">` : ''}
   <div class="field"><label for="title">Nombre del juego</label><input id="title" name="title" class="input" maxlength="120" required value="${escape(project?.title)}"></div>
+  ${formField({ name: 'author', label: 'Autor del port (opcional)', value: project?.author, max: 120, placeholder: 'Nombre, alias o equipo' })}
   <div class="field"><label for="description">Descripción</label><textarea id="description" name="description" maxlength="1200" placeholder="Cuenta de qué trata el port.">${escape(project?.description)}</textarea></div>
   <div class="field"><label for="status">Estado del proyecto</label>
     <select class="input" id="status" name="status">${Object.entries(projectStatuses).map(([value, label]) =>

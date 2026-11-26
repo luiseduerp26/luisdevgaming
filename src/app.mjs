@@ -194,6 +194,8 @@ async function saveProject(request, store, snapshot, id) {
     throw new InputError('El proyecto cambió desde que abriste el editor. Recarga la página antes de guardar.', 409);
   }
   const title = stringField(form, 'title', 120, 'El nombre', true);
+  const author = form.has('author')
+    ? stringField(form, 'author', 120, 'El nombre del autor') : previous?.author ?? '';
   const description = stringField(form, 'description', 1200, 'La descripción');
   const status = form.has('status') ? form.get('status') : projectStatus(previous);
   if (typeof status !== 'string' || !Object.hasOwn(projectStatuses, status)) {
@@ -224,6 +226,7 @@ async function saveProject(request, store, snapshot, id) {
   const updated = {
     id: projectId,
     title,
+    author,
     description,
     status,
     ...release,
